@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0f14">
+<title>Prof. Roberto — Seu Professor IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --border: #252a38;
+    --accent: #7ee8a2;
+    --accent2: #5bc8f5;
+    --accent3: #f5c842;
+    --red: #ef4444;
+    --text: #e8ecf4;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --user-bubble: #1c2b3a;
+    --ai-bubble: #141a1f;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    width: 100%; top: 0; left: 0; right: 0; bottom: 0;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,15,20,0.95); backdrop-filter: blur(12px);
+    position: relative; z-index: 10; flex-shrink: 0;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 17px; flex-shrink: 0;
+  }
+  .logo-text { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .clear-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    font-family: var(--font-body); font-size: 12px; padding: 6px 12px;
+    border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* SUBJECTS BAR */
+  .subjects-bar {
+    display: flex; gap: 7px; padding: 8px 16px;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+    overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .subjects-bar::-webkit-scrollbar { display: none; }
+  .subject-chip {
+    display: flex; align-items: center; gap: 5px; padding: 5px 13px;
+    border-radius: 20px; border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); font-family: var(--font-body); font-size: 12px;
+    cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0;
+    -webkit-user-select: none;
+  }
+  .subject-chip:active { transform: scale(0.95); }
+  .subject-chip.active { background: rgba(94,200,245,0.1); border-color: var(--accent2); color: var(--accent2); }
+
+  /* CHAT */
+  .chat-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; z-index: 1; }
+  #chat {
+    flex: 1; overflow-y: auto; padding: 20px 16px;
+    scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  }
+  #chat::-webkit-scrollbar { width: 3px; }
+  #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* WELCOME */
+  .welcome {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 55vh; text-align: center; animation: fadeIn 0.5s ease; padding: 0 8px;
+  }
+  .welcome-icon { font-size: 48px; margin-bottom: 16px; }
+  .welcome h1 {
+    font-family: var(--font-display); font-size: clamp(22px, 5vw, 36px);
+    font-weight: 600; letter-spacing: -1px; margin-bottom: 10px; line-height: 1.15;
+  }
+  .welcome h1 em { font-style: italic; color: var(--accent); }
+  .welcome p { color: var(--text-dim); max-width: 380px; font-size: 14px; margin-bottom: 28px; }
+  .suggestions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; width: min(520px, 100%); }
+  .suggestion-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 14px; cursor: pointer; text-align: left; transition: all 0.2s;
+    position: relative; overflow: hidden; -webkit-user-select: none;
+  }
+  .suggestion-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
+  }
+  .suggestion-card:hover::before, .suggestion-card:active::before { transform: scaleX(1); }
+  .suggestion-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .suggestion-card:active { transform: scale(0.97); }
+  .suggestion-card .icon { font-size: 18px; margin-bottom: 6px; }
+  .suggestion-card .title { font-size: 12.5px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+  .suggestion-card .desc { font-size: 11.5px; color: var(--text-muted); }
+
+  /* MESSAGES */
+  .message { display: flex; gap: 10px; margin-bottom: 16px; animation: slideUp 0.3s ease; }
+  .message.user { flex-direction: row-reverse; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+  .avatar.ai { background: linear-gradient(135deg, #1a2a20, #1a2535); border: 1px solid var(--border); }
+  .avatar.user { background: linear-gradient(135deg, #1c2b3a, #1a2535); border: 1px solid var(--border); }
+  .bubble {
+    max-width: min(680px, 82%); padding: 12px 15px; border-radius: 16px;
+    font-size: 14px; line-height: 1.7;
+  }
+  .message.user .bubble { background: var(--user-bubble); border: 1px solid #253040; border-bottom-right-radius: 4px; }
+  .message.ai .bubble { background: var(--ai-bubble); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+
+  /* Markdown */
+  .bubble h1,.bubble h2,.bubble h3 { font-family: var(--font-display); font-weight: 600; margin: 12px 0 7px; line-height: 1.3; }
+  .bubble h1 { font-size: 19px; }
+  .bubble h2 { font-size: 16px; color: var(--accent2); }
+  .bubble h3 { font-size: 14px; color: var(--accent); }
+  .bubble p { margin-bottom: 9px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble ul,.bubble ol { padding-left: 18px; margin-bottom: 9px; }
+  .bubble li { margin-bottom: 3px; }
+  .bubble strong { color: var(--accent3); font-weight: 500; }
+  .bubble em { color: var(--accent2); font-style: italic; }
+  .bubble code:not(pre code) { background: rgba(126,232,162,0.1); border: 1px solid rgba(126,232,162,0.2); color: var(--accent); padding: 1px 5px; border-radius: 5px; font-size: 12.5px; }
+  .bubble pre { background: #0a0c10; border: 1px solid var(--border); border-radius: 10px; padding: 12px; overflow-x: auto; margin: 10px 0; }
+  .bubble pre code { font-size: 12.5px; }
+  .bubble blockquote { border-left: 3px solid var(--accent3); padding: 5px 12px; margin: 9px 0; background: rgba(245,200,66,0.05); border-radius: 0 8px 8px 0; color: var(--text-dim); font-style: italic; }
+  .bubble hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  .bubble table { width: 100%; border-collapse: collapse; margin: 9px 0; font-size: 13px; }
+  .bubble th { background: var(--surface2); color: var(--accent2); padding: 7px 10px; text-align: left; border: 1px solid var(--border); font-weight: 500; }
+  .bubble td { padding: 6px 10px; border: 1px solid var(--border); }
+  .bubble tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  /* Message actions */
+  .msg-actions { display: flex; align-items: center; gap: 6px; margin-top: 5px; margin-left: 40px; }
+  .speak-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    font-size: 12px; padding: 3px 10px; border-radius: 6px; cursor: pointer;
+    transition: all 0.2s; font-family: var(--font-body);
+  }
+  .speak-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .speak-btn.speaking { border-color: var(--accent); color: var(--accent); animation: speakPulse 1.5s infinite; }
+  .model-badge { font-size: 11px; color: var(--text-muted); }
+
+  /* TYPING */
+  .typing-indicator { display: flex; align-items: center; gap: 5px; padding: 12px 15px; background: var(--ai-bubble); border: 1px solid var(--border); border-radius: 16px; border-bottom-left-radius: 4px; width: fit-content; }
+  .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: bounce 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* INPUT AREA */
+  .input-area {
+    padding: 12px 16px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(13,15,20,0.97); border-top: 1px solid var(--border);
+    backdrop-filter: blur(12px); position: relative; z-index: 10; flex-shrink: 0;
+  }
+  .input-box {
+    display: flex; align-items: flex-end; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 8px 8px 8px 14px; transition: border-color 0.2s;
+    max-width: 900px; margin: 0 auto;
+  }
+  .input-box:focus-within { border-color: var(--accent2); }
+  #userInput {
+    flex: 1; background: transparent; border: none; color: var(--text);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+    resize: none; outline: none; max-height: 120px; min-height: 24px;
+    overflow-y: auto; scrollbar-width: none;
+  }
+  #userInput::placeholder { color: var(--text-muted); }
+
+  .input-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+  .mic-btn {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; transition: all 0.2s; flex-shrink: 0;
+  }
+  .mic-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .mic-btn.listening { background: rgba(239,68,68,0.15); border-color: var(--red); color: var(--red); animation: micPulse 1s infinite; }
+  .mic-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .send-btn {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s, transform 0.15s; flex-shrink: 0;
+  }
+  .send-btn:hover { opacity: 0.88; transform: scale(1.05); }
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .send-btn svg { width: 16px; height: 16px; fill: #0d0f14; }
+
+  .hint { text-align: center; color: var(--text-muted); font-size: 11px; margin-top: 6px; max-width: 900px; margin-left: auto; margin-right: auto; }
+
+  /* MIC TOAST */
+  .mic-toast {
+    position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(30,30,40,0.95); border: 1px solid var(--border); color: var(--text);
+    font-size: 13px; font-weight: 500; padding: 10px 20px; border-radius: 20px;
+    pointer-events: none; opacity: 0; transition: all 0.3s; z-index: 50;
+    white-space: nowrap; backdrop-filter: blur(8px);
+  }
+  .mic-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .mic-toast.listening { border-color: var(--red); color: var(--red); }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%,80%,100% { transform: scale(0.7); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+  @keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+  @keyframes speakPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+  /* RESPONSIVE */
+  @media (min-width: 768px) {
+    #chat { padding: 24px 28px; }
+    .input-area { padding: 14px 28px 18px; }
+  }
+  @media (max-width: 480px) {
+    .suggestions { grid-template-columns: 1fr 1fr; gap: 7px; }
+    .bubble { max-width: 88%; font-size: 13.5px; }
+    .logo-text { font-size: 17px; }
+    .msg-actions { opacity: 1 !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mic-toast" id="micToast"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">👨‍🏫</div>
+    <div class="logo-text">Prof. <span>Roberto</span></div>
+  </div>
+  <div class="header-right">
+    <button class="clear-btn" onclick="clearChat()">🗑 Limpar</button>
+  </div>
+</header>
+
+<div class="subjects-bar">
+  <button class="subject-chip active" onclick="setSubject(this,'geral')">✨ Geral</button>
+  <button class="subject-chip" onclick="setSubject(this,'matematica')">📐 Matemática</button>
+  <button class="subject-chip" onclick="setSubject(this,'fisica')">⚛️ Física</button>
+  <button class="subject-chip" onclick="setSubject(this,'quimica')">🧪 Química</button>
+  <button class="subject-chip" onclick="setSubject(this,'biologia')">🌿 Biologia</button>
+  <button class="subject-chip" onclick="setSubject(this,'historia')">🏛️ História</button>
+  <button class="subject-chip" onclick="setSubject(this,'geografia')">🌍 Geografia</button>
+  <button class="subject-chip" onclick="setSubject(this,'portugues')">📝 Português</button>
+  <button class="subject-chip" onclick="setSubject(this,'ingles')">🇬🇧 Inglês</button>
+  <button class="subject-chip" onclick="setSubject(this,'filosofia')">🤔 Filosofia</button>
+  <button class="subject-chip" onclick="setSubject(this,'sociologia')">👥 Sociologia</button>
+  <button class="subject-chip" onclick="setSubject(this,'enem')">🎯 ENEM</button>
+</div>
+
+<div class="chat-wrapper">
+  <div id="chat">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">👨‍🏫</div>
+      <h1>Fala, galera! Sou o <em>Prof. Roberto!</em></h1>
+      <p>Professor brincalhão, mas que ensina pra valer! Digite ou use o 🎤 microfone pra mandar sua dúvida!</p>
+      <div class="suggestions">
+        <div class="suggestion-card" onclick="sendSuggestion('Explique a Lei de Newton de forma simples')">
+          <div class="icon">⚛️</div><div class="title">Lei de Newton</div><div class="desc">De forma simples e divertida</div>
+        </div>
+        <div class="suggestion-card" onclick="sendSuggestion('Como resolver equação do 2º grau? Mostre o passo a passo')">
+          <div class="icon">📐</div><div class="title">Equação do 2º grau</div><div class="desc">Passo a passo com o Roberto</div>
+        </div>
+        <div class="suggestion-card" onclick="sendSuggestion('Quais foram as causas da Primeira Guerra Mundial?')">
+          <div class="icon">🏛️</div><div class="title">1ª Guerra Mundial</div><div class="desc">História com pitadas de humor</div>
+        </div>
+        <div class="suggestion-card" onclick="sendSuggestion('Me dê 5 dicas para me sair bem no ENEM')">
+          <div class="icon">🎯</div><div class="title">Dicas pro ENEM</div><div class="desc">O coach mais animado do Brasil</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-box">
+    <textarea id="userInput" placeholder="Manda a dúvida pro Prof. Roberto! 😄" rows="1"></textarea>
+    <div class="input-actions">
+      <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Falar com o Prof. Roberto">🎤</button>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="hint" id="hintText">Toque no 🎤 para falar · Enter para enviar</div>
+</div>
+
+<script>
+  // STATE
+  let apiKey = 'AIzaSyAV7AbjZzlnQMtyyioT9ij0EpLAr8gnUjs';
+  let currentSubject = 'geral';
+  let messages = [];
+  let isLoading = false;
+  let currentUtterance = null;
+  let isSpeaking = false;
+  let recognition = null;
+  let isListening = false;
+  let isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // SUBJECT PROMPTS
+  const subjectPrompts = {
+    geral: 'Você é o Professor Roberto, um professor do Ensino Médio brasileiro super brincalhão, divertido e descontraído, mas muito competente. Use gírias leves, humor, trocadilhos e emojis com moderação. Faça analogias criativas e engraçadas. Chame o aluno de "meu chapa", "galera" ou "parceiro". Seja sempre preciso e didático. Use Markdown para organizar as respostas.',
+    matematica: 'Você é o Professor Roberto, especialista em Matemática. Brincalhão, usa humor para tornar a matemática menos assustadora. Resolve passo a passo com comentários engraçados. Faz trocadilhos matemáticos horríveis e ri deles.',
+    fisica: 'Você é o Professor Roberto, especialista em Física. Usa exemplos absurdamente criativos do cotidiano. Faz piadas com os nomes dos cientistas (tipo "Newton era um cara que levou uma maçada na cabeça e ficou famoso por isso"). Preciso nas fórmulas.',
+    quimica: 'Você é o Professor Roberto, especialista em Química. Faz trocadilhos horríveis com elementos da tabela periódica e ri deles mesmo. Explica reações com analogias engraçadas do dia a dia.',
+    biologia: 'Você é o Professor Roberto, especialista em Biologia. Ama curiosidades bizarras sobre seres vivos. É brincalhão e usa comparações inusitadas. Faz o aluno ficar impressionado enquanto aprende.',
+    historia: 'Você é o Professor Roberto, especialista em História. Narra eventos históricos como um contador de histórias dramático e engraçado. Faz comentários bem-humorados sobre os personagens históricos.',
+    geografia: 'Você é o Professor Roberto, especialista em Geografia. Usa curiosidades geográficas surpreendentes. Faz piadas respeitosas sobre os países. Explica fenômenos com analogias do cotidiano.',
+    portugues: 'Você é o Professor Roberto, especialista em Português. Adora brincar com palavras e fazer trocadilhos. Explica gramática de forma leve e divertida, sem ser chato.',
+    ingles: 'You are Professor Roberto, an English teacher. Fun, uses jokes and funny examples. Mix Portuguese and English naturally. Say things like "Easy peasy, lemon squeezy!" Make learning English feel like a game!',
+    filosofia: 'Você é o Professor Roberto, especialista em Filosofia. Faz perguntas filosóficas no meio de situações absurdas do cotidiano. Explica filósofos como personagens de série.',
+    sociologia: 'Você é o Professor Roberto, especialista em Sociologia. Conecta conceitos sociológicos com situações atuais. Descontraído e incentiva o pensamento crítico com bom humor.',
+    enem: 'Você é o Professor Roberto, coach para o ENEM. O mais animado do Brasil! Usa frases de incentivo engraçadas e torna o estudo menos apavorante. Chama o aluno de "futuro universitário" às vezes.'
+  };
+
+  // TEXTAREA AUTO-RESIZE
+  const textarea = document.getElementById('userInput');
+  textarea.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+  textarea.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
+      e.preventDefault(); sendMessage();
+    }
+  });
+  if (isMobile) document.getElementById('hintText').textContent = 'Toque 🎤 para falar · Toque ➤ para enviar';
+
+  // ── TTS - VOZ DO PROF. ROBERTO ──
+  let voicesLoaded = false;
+  speechSynthesis.onvoiceschanged = () => { voicesLoaded = true; };
+
+  function getRobertoVoice() {
+    const voices = speechSynthesis.getVoices();
+    return (
+      voices.find(v => v.lang === 'pt-BR' && /male|masculin/i.test(v.name)) ||
+      voices.find(v => v.lang === 'pt-BR') ||
+      voices.find(v => v.lang.startsWith('pt')) ||
+      voices[0]
+    );
+  }
+
+  function stripMarkdown(text) {
+    return text
+      .replace(/```[\s\S]*?```/g, 'trecho de código.')
+      .replace(/`[^`]+`/g, '')
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/^[-*]\s/gm, '')
+      .replace(/^\d+\.\s/gm, '')
+      .replace(/> /g, '')
+      .replace(/\n+/g, ' ')
+      .trim();
+  }
+
+  function speak(text, btn) {
+    // Toggle: if speaking, stop
+    if (isSpeaking) {
+      speechSynthesis.cancel();
+      isSpeaking = false;
+      if (btn) { btn.textContent = '🔊 Ouvir'; btn.classList.remove('speaking'); }
+      return;
+    }
+
+    const clean = stripMarkdown(text);
+    if (!clean) return;
+
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.lang = 'pt-BR';
+    utter.rate = 1.05;
+    utter.pitch = 1.1;
+    utter.volume = 1;
+
+    const voice = getRobertoVoice();
+    if (voice) utter.voice = voice;
+
+    utter.onstart = () => {
+      isSpeaking = true;
+      currentUtterance = utter;
+      if (btn) { btn.textContent = '⏹ Parar'; btn.classList.add('speaking'); }
+    };
+    utter.onend = utter.onerror = () => {
+      isSpeaking = false;
+      currentUtterance = null;
+      if (btn) { btn.textContent = '🔊 Ouvir'; btn.classList.remove('speaking'); }
+    };
+
+    // iOS fix: must call after user gesture
+    speechSynthesis.cancel();
+    setTimeout(() => speechSynthesis.speak(utter), 50);
+  }
+
+  // ── SPEECH RECOGNITION ──
+  function buildRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return null;
+    const rec = new SR();
+    rec.lang = 'pt-BR';
+    rec.continuous = false;
+    rec.interimResults = true;
+
+    rec.onstart = () => {
+      isListening = true;
+      document.getElementById('micBtn').classList.add('listening');
+      showToast('🎤 Ouvindo... fale agora!', true);
+    };
+    rec.onresult = (e) => {
+      let interim = '', final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      textarea.value = final || interim;
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    };
+    rec.onend = () => {
+      isListening = false;
+      document.getElementById('micBtn').classList.remove('listening');
+      hideToast();
+      if (textarea.value.trim()) sendMessage();
+    };
+    rec.onerror = (e) => {
+      isListening = false;
+      document.getElementById('micBtn').classList.remove('listening');
+      if (e.error === 'not-allowed') showToast('❌ Permita o microfone nas configurações', false);
+      else showToast('❌ Erro no microfone: ' + e.error, false);
+      setTimeout(hideToast, 3000);
+    };
+    return rec;
+  }
+
+  function toggleMic() {
+    if (!recognition) recognition = buildRecognition();
+    if (!recognition) {
+      showToast('❌ Microfone não suportado neste navegador', false);
+      setTimeout(hideToast, 3000);
+      return;
+    }
+    if (isListening) {
+      recognition.stop();
+    } else {
+      try { recognition.start(); }
+      catch(e) { recognition = buildRecognition(); recognition?.start(); }
+    }
+  }
+
+  function showToast(msg, listening) {
+    const t = document.getElementById('micToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    if (listening) t.classList.add('listening');
+    else t.classList.remove('listening');
+  }
+  function hideToast() {
+    const t = document.getElementById('micToast');
+    t.classList.remove('show', 'listening');
+  }
+
+  // SUBJECT
+  function setSubject(el, subject) {
+    document.querySelectorAll('.subject-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    currentSubject = subject;
+    messages = [];
+    speechSynthesis.cancel(); isSpeaking = false;
+  }
+
+  // CLEAR
+  function clearChat() {
+    messages = [];
+    speechSynthesis.cancel(); isSpeaking = false;
+    document.getElementById('chat').innerHTML = `
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">👨‍🏫</div>
+        <h1>Fala, galera! Sou o <em>Prof. Roberto!</em></h1>
+        <p>Professor brincalhão, mas que ensina pra valer! Digite ou use o 🎤 microfone pra mandar sua dúvida!</p>
+        <div class="suggestions">
+          <div class="suggestion-card" onclick="sendSuggestion('Explique a Lei de Newton de forma simples')">
+            <div class="icon">⚛️</div><div class="title">Lei de Newton</div><div class="desc">De forma simples e divertida</div>
+          </div>
+          <div class="suggestion-card" onclick="sendSuggestion('Como resolver equação do 2º grau? Mostre o passo a passo')">
+            <div class="icon">📐</div><div class="title">Equação do 2º grau</div><div class="desc">Passo a passo com o Roberto</div>
+          </div>
+          <div class="suggestion-card" onclick="sendSuggestion('Quais foram as causas da Primeira Guerra Mundial?')">
+            <div class="icon">🏛️</div><div class="title">1ª Guerra Mundial</div><div class="desc">História com pitadas de humor</div>
+          </div>
+          <div class="suggestion-card" onclick="sendSuggestion('Me dê 5 dicas para me sair bem no ENEM')">
+            <div class="icon">🎯</div><div class="title">Dicas pro ENEM</div><div class="desc">O coach mais animado do Brasil</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // SEND
+  function sendSuggestion(text) { textarea.value = text; sendMessage(); }
+
+  async function sendMessage() {
+    if (isLoading) return;
+    const text = textarea.value.trim();
+    if (!text) return;
+
+    document.getElementById('welcome')?.remove();
+    textarea.value = ''; textarea.style.height = 'auto';
+    if (isMobile) textarea.blur();
+
+    messages.push({ role: 'user', parts: [{ text }] });
+    appendMessage('user', text);
+
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+    document.getElementById('micBtn').disabled = true;
+    const typingEl = appendTyping();
+
+    try {
+      const systemPrompt = subjectPrompts[currentSubject] || subjectPrompts.geral;
+      const body = {
+        contents: messages.map((m, i) => {
+          if (i === 0) return { role: 'user', parts: [{ text: systemPrompt + '\n\n' + m.parts[0].text }] };
+          return { role: m.role, parts: m.parts };
+        }),
+        generationConfig: { temperature: 0.75, maxOutputTokens: 2048 }
+      };
+
+      const models = ['gemini-2.5-flash','gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-flash-001','gemini-1.0-pro'];
+      let data = null, lastError = '', usedModel = '';
+
+      for (const model of models) {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+        );
+        data = await res.json();
+        if (!data.error) { usedModel = model; break; }
+        lastError = data.error.message; data = null;
+      }
+
+      if (!data) throw new Error(lastError);
+
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Não consegui gerar uma resposta.';
+      console.log(`%c✅ Modelo: ${usedModel}`, 'color:#7ee8a2;font-weight:bold');
+      messages.push({ role: 'model', parts: [{ text: reply }] });
+
+      typingEl.remove();
+      const msgEl = appendMessage('ai', reply, usedModel);
+
+      // Auto-fala no mobile para respostas curtas
+      if (isMobile && reply.length < 600) {
+        const btn = msgEl.querySelector('.speak-btn');
+        setTimeout(() => speak(reply, btn), 400);
+      }
+
+    } catch(err) {
+      typingEl.remove();
+      appendMessage('ai', `❌ Erro: ${err.message}`);
+    }
+
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('micBtn').disabled = false;
+  }
+
+  // MARKDOWN
+  function parseMarkdown(text) {
+    return text
+      .replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+        `<pre><code class="${lang||''}">${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>`)
+      .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+      .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+      .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>')
+      .replace(/`([^`\n]+)`/g,'<code>$1</code>')
+      .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+      .replace(/^---$/gm,'<hr>')
+      .replace(/^\* (.+)$/gm,'<li>$1</li>')
+      .replace(/^- (.+)$/gm,'<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
+      .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+      .replace(/\n\n+/g,'</p><p>');
+  }
+  function renderBubble(text) {
+    let html = parseMarkdown(text);
+    if (!html.match(/^<(h[1-6]|ul|ol|pre|blockquote|hr)/)) html = '<p>' + html + '</p>';
+    return html;
+  }
+
+  // APPEND MESSAGE
+  function appendMessage(role, text, model) {
+    const chat = document.getElementById('chat');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+
+    if (role === 'ai') {
+      div.dataset.rawText = text;
+      div.innerHTML = `
+        <div class="avatar ai">👨‍🏫</div>
+        <div style="min-width:0;flex:1">
+          <div class="bubble">${renderBubble(text)}</div>
+          <div class="msg-actions">
+            <button class="speak-btn" onclick="speak(this.closest('.message').dataset.rawText, this)">🔊 Ouvir</button>
+            <span class="model-badge">⚡ ${model||''}</span>
+          </div>
+        </div>`;
+    } else {
+      div.innerHTML = `
+        <div class="avatar user">🙋</div>
+        <div class="bubble"><p>${escapeHtml(text)}</p></div>`;
+    }
+
+    chat.appendChild(div);
+    div.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+    chat.scrollTop = chat.scrollHeight;
+    return div;
+  }
+
+  function appendTyping() {
+    const chat = document.getElementById('chat');
+    const div = document.createElement('div');
+    div.className = 'message ai';
+    div.innerHTML = `
+      <div class="avatar ai">👨‍🏫</div>
+      <div class="typing-indicator">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+      </div>`;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return div;
+  }
+
+  function escapeHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // iOS viewport fix
+  if (isMobile && window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      document.body.style.height = window.visualViewport.height + 'px';
+    });
+  }
+</script>
+</body>
+</html>
