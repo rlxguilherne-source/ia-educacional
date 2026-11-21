@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#050810">
+  <meta name="description" content="Prof. Roberto — Plataforma de IA Educacional para Ensino Médio">
+  <title>Prof. Roberto — IA Educacional</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- PDF.js (extração de texto de PDFs); o OCR (Tesseract.js) é carregado sob demanda -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Supabase v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+</head>
+<body>
+
+<canvas id="particles-canvas"></canvas>
+
+<!-- Auth Loading Overlay -->
+<div id="authLoadingOverlay">
+  <div class="auth-loading-spinner"></div>
+  <div class="auth-loading-text">Verificando sessão...</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════ AUTH SCREEN ══════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="auth-logo-icon">👨‍🏫</span>
+      <span class="auth-logo-name">Prof. Roberto</span>
+      <span class="auth-logo-sub">IA · Ensino Médio</span>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Criar conta</button>
+      <button class="auth-tab" data-tab="forgot" onclick="switchAuthTab('forgot')">Recuperar</button>
+    </div>
+
+    <!-- Login -->
+    <div class="auth-form" id="loginForm">
+      <div>
+        <div class="auth-field-label">E-mail</div>
+        <input class="auth-input" id="loginEmail" type="email" placeholder="seu@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div>
+        <div class="auth-field-label">Senha</div>
+        <input class="auth-input" id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="auth-error" id="loginError"></div>
+      <button class="auth-submit-btn" id="loginBtn" onclick="doLogin()">Entrar →</button>
+      <div class="auth-divider">ou</div>
+      <button class="auth-google-btn" onclick="doGoogleLogin()">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.5 30.3 0 24 0 14.8 0 6.9 5.4 3.1 13.3l7.9 6.1C12.8 13 18 9.5 24 9.5z"/><path fill="#4285F4" d="M46.6 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.5 2.9-2.2 5.4-4.7 7l7.3 5.7c4.3-4 6.3-9.9 7.3-16.7z"/><path fill="#FBBC05" d="M11 28.4c-.5-1.5-.8-3.1-.8-4.4s.3-2.9.8-4.4L3.1 13.3C1.1 17.1 0 21.4 0 24s1.1 6.9 3.1 10.7l7.9-6.3z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2.2 1.5-5 2.4-8.6 2.4-6 0-11.1-4-12.9-9.5L3.1 35.7C6.9 43.5 14.8 48 24 48z"/></svg>
+        Entrar com Google
+      </button>
+    </div>
+
+    <!-- Register -->
+    <div class="auth-form hidden" id="registerForm">
+      <div class="auth-field-group">
+        <div class="auth-field-label">Eu sou</div>
+        <div class="auth-type-row" role="group" aria-label="Tipo de conta">
+          <button type="button" class="auth-type-pill active" data-tipo="aluno" onclick="setRegTipo('aluno')">
+            <span class="auth-type-pill-icon">👩‍🎓</span>
+            <span class="auth-type-pill-label">Aluno</span>
+          </button>
+          <button type="button" class="auth-type-pill" data-tipo="professor" onclick="setRegTipo('professor')">
+            <span class="auth-type-pill-icon">👨‍🏫</span>
+            <span class="auth-type-pill-label">Professor</span>
+          </button>
+        </div>
+        <input type="hidden" id="regTipoConta" value="aluno">
+      </div>
+      <div class="auth-field-group">
+        <div class="auth-field-label">Nome completo</div>
+        <input class="auth-input" id="regName" type="text" placeholder="Como você quer ser chamado" autocomplete="name">
+      </div>
+      <div class="auth-field-group">
+        <div class="auth-field-label">E-mail</div>
+        <input class="auth-input" id="regEmail" type="email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field-group">
+        <div class="auth-field-label">Senha</div>
+        <input class="auth-input" id="regPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      </div>
+      <!-- Campos do Aluno -->
+      <div id="regAlunoFields" class="auth-role-panel">
+        <div class="auth-field-label">Série</div>
+        <select class="auth-input" id="regSerie">
+          <optgroup label="🏫 Fundamental II">
+            <option value="5º Fundamental">5º Fundamental</option>
+            <option value="6º Fundamental">6º Fundamental</option>
+            <option value="7º Fundamental">7º Fundamental</option>
+            <option value="8º Fundamental">8º Fundamental</option>
+            <option value="9º Fundamental">9º Fundamental</option>
+          </optgroup>
+          <optgroup label="🎓 Ensino Médio">
+            <option value="1º Ensino Médio" selected>1º Ensino Médio</option>
+            <option value="2º Ensino Médio">2º Ensino Médio</option>
+            <option value="3º Ensino Médio">3º Ensino Médio</option>
+          </optgroup>
+        </select>
+        <div class="auth-field-label" style="margin-top:8px">Turma</div>
+        <select class="auth-input" id="regTurma">
+          <option value="A">Turma A</option>
+          <option value="B">Turma B</option>
+          <option value="C">Turma C</option>
+          <option value="D">Turma D</option>
+        </select>
+      </div>
+      <!-- Campos do Professor -->
+      <div id="regProfFields" class="auth-role-panel hidden">
+        <div class="auth-field-label">Matéria que leciona</div>
+        <select class="auth-input" id="regMateria">
+          <option value="Matemática">📐 Matemática</option>
+          <option value="Português">📝 Português</option>
+          <option value="História">🏛️ História</option>
+          <option value="Geografia">🌍 Geografia</option>
+          <option value="Ciências">🔬 Ciências</option>
+          <option value="Física">⚛️ Física</option>
+          <option value="Química">🧪 Química</option>
+          <option value="Biologia">🌿 Biologia</option>
+          <option value="Inglês">🇬🇧 Inglês</option>
+        </select>
+        <div class="auth-field-label" style="margin-top:8px">Código de acesso do professor</div>
+        <input class="auth-input" id="regCodigoProf" type="password" placeholder="Fornecido pela direção da escola" autocomplete="off">
+      </div>
+      <div class="auth-hint" id="regHintAluno">
+        <span class="auth-hint-icon">💡</span>
+        <span>Alunos usam a plataforma para estudar com o Prof. Roberto na sua série e turma.</span>
+      </div>
+      <div class="auth-hint auth-hint--prof hidden" id="regHintProf">
+        <span class="auth-hint-icon">✨</span>
+        <span>Professores criam a própria conta aqui — escolha sua matéria e acesse o painel após confirmar o e-mail.</span>
+      </div>
+      <div class="auth-error" id="registerError"></div>
+      <div class="auth-success" id="registerSuccess"></div>
+      <button class="auth-submit-btn" id="registerBtn" onclick="doRegister()">Criar conta →</button>
+    </div>
+
+    <!-- Forgot password -->
+    <div class="auth-form hidden" id="forgotForm">
+      <div>
+        <div class="auth-field-label">E-mail cadastrado</div>
+        <input class="auth-input" id="forgotEmail" type="email" placeholder="seu@email.com">
+      </div>
+      <div class="auth-error" id="forgotError"></div>
+      <div class="auth-success" id="forgotSuccess"></div>
+      <button class="auth-submit-btn" id="forgotBtn" onclick="doForgotPassword()">Enviar link →</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Dropdown -->
+<div class="user-dropdown" id="userDropdown">
+  <div class="user-dropdown-name" id="dropdownName">—</div>
+  <div class="user-dropdown-email" id="dropdownEmail">—</div>
+  <div class="user-dropdown-divider"></div>
+  <button class="user-dropdown-item" onclick="setView('dashboard');toggleUserDropdown()">📊 Dashboard</button>
+  <button class="user-dropdown-item" id="professorPanelBtn" onclick="openProfessorPanel()" style="display:none">👨‍🏫 Painel Professor</button>
+  <button class="user-dropdown-item" id="adminPanelBtn" onclick="openAdminPanel()" style="display:none">🛡️ Painel Admin</button>
+  <button class="user-dropdown-item" id="superAdminPanelBtn" onclick="openSuperAdminPanel()" style="display:none">⚡ Super Admin</button>
+  <div class="user-dropdown-divider"></div>
+  <button class="user-dropdown-item danger" onclick="doLogout()">🚪 Sair</button>
+</div>
+
+<!-- ══════════ ADMIN PANEL ══════════ -->
+<div id="admin-screen" class="hidden">
+  <div class="admin-nav-overlay" id="adminNavOverlay" onclick="closeAdminNav()"></div>
+  <div class="admin-header">
+    <button type="button" class="admin-menu-btn" onclick="toggleAdminNav()" aria-label="Menu">☰</button>
+    <div class="admin-logo">🛡️ Painel Admin <span class="admin-badge">ADMIN</span></div>
+    <div class="admin-header-right">
+      <button class="admin-refresh-btn" onclick="loadAdminData()">↺ Atualizar</button>
+      <button class="admin-refresh-btn" onclick="adminExportData()">📥 Exportar</button>
+      <button class="admin-exit-btn" onclick="closeAdminPanel()">✕ Fechar</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <!-- Admin Nav -->
+    <nav class="admin-nav">
+      <div class="admin-nav-item active" data-view="overview"   onclick="switchAdminView('overview')">  <span class="admin-nav-icon">📊</span> Visão Geral</div>
+      <div class="admin-nav-item" data-view="users"     onclick="switchAdminView('users')">     <span class="admin-nav-icon">👥</span> Usuários</div>
+      <div class="admin-nav-item" data-view="ranking"   onclick="switchAdminView('ranking')">   <span class="admin-nav-icon">🏆</span> Ranking</div>
+      <div class="admin-nav-item" data-view="pesquisas" onclick="switchAdminView('pesquisas')"> <span class="admin-nav-icon">🔍</span> Pesquisas</div>
+      <div class="admin-nav-item" data-view="analytics" onclick="switchAdminView('analytics')"> <span class="admin-nav-icon">📈</span> Analytics</div>
+      <div class="admin-nav-item" data-view="logs"      onclick="switchAdminView('logs')">      <span class="admin-nav-icon">📋</span> Logs</div>
+      <div class="admin-nav-item" data-view="broadcast" onclick="switchAdminView('broadcast')"> <span class="admin-nav-icon">📢</span> Anúncios</div>
+      <div class="admin-nav-item" data-view="maintenance" onclick="switchAdminView('maintenance')"><span class="admin-nav-icon">🧹</span> Manutenção</div>
+    </nav>
+
+    <!-- Admin Content -->
+    <div class="admin-content">
+
+      <!-- Overview -->
+      <div class="admin-view active" id="admin-view-overview">
+        <!-- RLS Warning Banner — aparece quando RLS bloqueia leitura de todos os usuários -->
+        <div id="adminRlsWarning" style="display:none;margin-bottom:16px;padding:14px 16px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:12px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="font-size:20px;flex-shrink:0">⚠️</span>
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fbbf24;margin-bottom:6px">RLS bloqueando leitura de usuários</div>
+              <div style="font-size:12px;color:#8aa0c0;line-height:1.6;margin-bottom:10px">A política RLS do Supabase está impedindo que admins vejam todos os usuários. Execute este SQL no <b style="color:#dde6f5">Supabase → SQL Editor</b>:</div>
+              <pre style="background:#080c15;border:1px solid #1a2540;border-radius:8px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00d4ff;overflow-x:auto;white-space:pre-wrap">-- Permite admins lerem todos os usuários
+CREATE POLICY "admins_read_all_users"
+ON public.users FOR SELECT
+USING (
+  auth.uid() IN (
+    SELECT id FROM public.users WHERE is_admin = true
+  )
+  OR auth.uid() = id
+);
+
+-- Permite qualquer autenticado inserir/atualizar o próprio perfil
+CREATE POLICY "users_upsert_own"
+ON public.users FOR INSERT
+WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "users_update_own"
+ON public.users FOR UPDATE
+USING (auth.uid() = id);
+
+-- Permite admins atualizarem qualquer usuário
+CREATE POLICY "admins_update_all"
+ON public.users FOR UPDATE
+USING (
+  auth.uid() IN (
+    SELECT id FROM public.users WHERE is_admin = true
+  )
+);</pre>
+              <button onclick="document.getElementById('adminRlsWarning').style.display='none'" style="margin-top:8px;background:transparent;border:1px solid rgba(251,191,36,0.3);color:#fbbf24;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer">Fechar aviso</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-section-title">📊 Visão Geral da Plataforma</div>
+        <div class="admin-stats-grid" id="adminOverviewStats">
+          <div class="admin-stat-card"><div class="admin-stat-icon">👥</div><div class="admin-stat-val" id="stat-total-users">—</div><div class="admin-stat-label">Usuários totais</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">✅</div><div class="admin-stat-val" id="stat-active-users">—</div><div class="admin-stat-label">Usuários ativos</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">⛔</div><div class="admin-stat-val" id="stat-banned-users">—</div><div class="admin-stat-label">Banidos</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">🛡️</div><div class="admin-stat-val" id="stat-admin-users">—</div><div class="admin-stat-label">Admins</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">💬</div><div class="admin-stat-val" id="stat-total-msgs">—</div><div class="admin-stat-label">Msgs totais</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">🎯</div><div class="admin-stat-val" id="stat-total-quizzes">—</div><div class="admin-stat-label">Quizzes feitos</div></div>
+        </div>
+
+        <!-- Subject chart -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
+          <div class="admin-stat-card">
+            <div class="admin-stat-label" style="margin-bottom:14px">📚 Matérias mais acessadas</div>
+            <div id="adminSubjectChart">—</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label" style="margin-bottom:14px">🏆 Top 5 Alunos</div>
+            <div id="adminTopStudents">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div class="admin-view" id="admin-view-users">
+        <div class="admin-section-title">👥 Gerenciar Usuários</div>
+        <div class="admin-table-wrap">
+          <div class="admin-search-row">
+            <input class="admin-search-input" id="adminUserSearch" placeholder="🔍 Buscar por nome ou e-mail..." oninput="filterAdminUsers()">
+            <select class="admin-filter-select" id="adminUserFilter" onchange="filterAdminUsers()">
+              <option value="all">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="banned">Banidos</option>
+              <option value="admin">Admins</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Usuário</th>
+                  <th>Nível</th>
+                  <th>Msgs</th>
+                  <th>Quizzes</th>
+                  <th>Status</th>
+                  <th>Cadastro</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersBody">
+                <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ranking -->
+      <div class="admin-view" id="admin-view-ranking">
+        <div class="admin-section-title">🏆 Ranking Global</div>
+        <div class="admin-table-wrap">
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead>
+                <tr><th>#</th><th>Aluno</th><th>Nível</th><th>XP (msgs)</th><th>Quizzes</th><th>Streak</th></tr>
+              </thead>
+              <tbody id="adminRankingBody">
+                <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pesquisas — matérias e histórico dos alunos -->
+      <div class="admin-view" id="admin-view-pesquisas">
+        <div class="admin-section-title">🔍 Pesquisas dos Alunos</div>
+
+        <!-- Filtros -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <select class="admin-filter-select" id="pesqPeriodo" onchange="loadPesquisas()">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30" selected>Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="999">Todo período</option>
+          </select>
+          <select class="admin-filter-select" id="pesqUsuario" onchange="loadPesquisas()">
+            <option value="all">Todos os alunos</option>
+          </select>
+          <button class="admin-refresh-btn" onclick="loadPesquisas()">↺ Atualizar</button>
+        </div>
+
+        <!-- Cards de matérias mais usadas -->
+        <div class="admin-section-title" style="font-size:14px;margin-bottom:12px">📚 Matérias mais acessadas</div>
+        <div id="pesqSubjectCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:24px">
+          <div style="color:var(--text-muted);font-size:12px;grid-column:1/-1">Carregando...</div>
+        </div>
+
+        <!-- Gráfico de barras das matérias -->
+        <div class="admin-stat-card" style="margin-bottom:20px">
+          <div class="admin-stat-label" style="margin-bottom:14px">📊 Distribuição por matéria</div>
+          <div id="pesqSubjectChart"></div>
+        </div>
+
+        <!-- Histórico de pesquisas por aluno -->
+        <div class="admin-section-title" style="font-size:14px;margin-bottom:12px">🕓 Histórico de pesquisas</div>
+        <div class="admin-table-wrap">
+          <div class="admin-search-row">
+            <input class="admin-search-input" id="pesqSearch" placeholder="🔍 Buscar mensagem ou matéria..." oninput="filterPesquisas()" style="flex:1">
+          </div>
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Aluno</th>
+                  <th>Matéria</th>
+                  <th>Mensagem</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody id="pesqHistoryBody">
+                <tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-muted)">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics -->
+      <div class="admin-view" id="admin-view-analytics">
+        <div class="admin-section-title">📈 Analytics</div>
+        <div class="admin-stats-grid" id="adminAnalyticsCards">
+          <div class="admin-stat-card"><div class="admin-stat-icon">📅</div><div class="admin-stat-val" id="stat-today-logins">—</div><div class="admin-stat-label">Logins hoje</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">📊</div><div class="admin-stat-val" id="stat-avg-msgs">—</div><div class="admin-stat-label">Média msgs/usuário</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">⭐</div><div class="admin-stat-val" id="stat-avg-quiz">—</div><div class="admin-stat-label">Média quizzes/usuário</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">🔥</div><div class="admin-stat-val" id="stat-max-streak">—</div><div class="admin-stat-label">Maior streak</div></div>
+        </div>
+        <div class="admin-stat-card" style="margin-bottom:14px">
+          <div class="admin-stat-label" style="margin-bottom:14px">📅 Atividade dos últimos 7 dias</div>
+          <div id="adminWeeklyChart" style="display:flex;align-items:flex-end;gap:10px;height:80px"></div>
+        </div>
+      </div>
+
+      <!-- Logs -->
+      <div class="admin-view" id="admin-view-logs">
+        <div class="admin-section-title">📋 Logs de Atividade</div>
+        <div class="admin-table-wrap" style="padding:16px">
+          <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+            <select class="admin-filter-select" id="logTypeFilter" onchange="filterLogs()">
+              <option value="all">Todos os tipos</option>
+              <option value="login">Login</option>
+              <option value="logout">Logout</option>
+              <option value="message">Mensagem</option>
+              <option value="quiz">Quiz</option>
+              <option value="admin">Admin</option>
+            </select>
+            <input class="admin-search-input" id="logSearch" placeholder="🔍 Buscar nos logs..." style="flex:1;min-width:200px" oninput="filterLogs()">
+          </div>
+          <div id="adminLogsBody" style="color:var(--text-muted);font-size:12px">Carregando logs...</div>
+        </div>
+      </div>
+
+      <!-- Broadcast -->
+      <div class="admin-view" id="admin-view-broadcast">
+        <div class="admin-section-title">📢 Anúncios</div>
+        <div class="admin-stat-card" style="margin-bottom:20px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-dim);margin-bottom:12px">Novo anúncio</div>
+          <input class="admin-search-input" id="broadcastTitle" placeholder="Título do anúncio" style="width:100%;margin-bottom:10px">
+          <textarea id="broadcastMsg" style="width:100%;background:#080c15;border:1px solid #1a2540;border-radius:9px;color:#dde6f5;font-family:'Nunito',sans-serif;font-size:13px;padding:10px 14px;outline:none;resize:vertical;min-height:80px" placeholder="Mensagem..."></textarea>
+          <div style="margin-top:12px">
+            <button onclick="sendBroadcast()" style="background:linear-gradient(135deg,rgba(248,113,113,0.2),rgba(251,146,60,0.2));border:1px solid rgba(248,113,113,0.4);color:#f87171;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;padding:10px 24px;border-radius:10px;cursor:pointer;transition:all 0.2s">📢 Publicar</button>
+          </div>
+        </div>
+        <div class="admin-section-title" style="font-size:15px">Anúncios ativos</div>
+        <div id="broadcastList" style="color:var(--text-muted);font-size:13px">Nenhum anúncio.</div>
+      </div>
+
+      <!-- Manutenção -->
+      <div class="admin-view" id="admin-view-maintenance">
+        <div class="admin-section-title">🧹 Manutenção do Banco</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
+          <div class="admin-stat-card">
+            <div class="admin-stat-icon">💬</div>
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">Histórico de Chat</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Remove todas as sessões de chat salvas</div>
+            <button class="maint-btn danger" onclick="maintClean('chat_history','histórico de chat')">🗑️ Limpar histórico de chat</button>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-icon">🎯</div>
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">Quizzes Antigos</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Remove resultados de quizzes com mais de 90 dias</div>
+            <button class="maint-btn warn" onclick="maintCleanOld('quiz_history',90,'quizzes antigos')">🗑️ Limpar quizzes antigos</button>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-icon">📈</div>
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">Analytics Antigos</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Remove registros de analytics com mais de 90 dias</div>
+            <button class="maint-btn warn" onclick="maintCleanOld('analytics',90,'analytics antigos')">🗑️ Limpar analytics antigos</button>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-icon">📚</div>
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">Atividades Antigas</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Remove atividades geradas com mais de 90 dias</div>
+            <button class="maint-btn warn" onclick="maintCleanOld('atividades',90,'atividades antigas')">🗑️ Limpar atividades antigas</button>
+          </div>
+        </div>
+        <div id="maintLog" style="margin-top:20px;font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace"></div>
+      </div>
+
+    </div><!-- /admin-content -->
+  </div><!-- /admin-body -->
+</div><!-- /admin-screen -->
+
+<!-- User detail modal -->
+<div class="admin-modal-overlay hidden" id="adminUserModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <div class="admin-modal-title" id="modalUserTitle">Detalhes do Usuário</div>
+      <button class="admin-modal-close" onclick="closeAdminUserModal()">✕</button>
+    </div>
+    <div class="admin-modal-body" id="modalUserBody"></div>
+  </div>
+</div>
+
+<!-- ══════════ APP SHELL ══════════ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">👨‍🏫</div>
+      <div>
+        <div class="sidebar-logo-name">Prof. Roberto</div>
+        <div class="sidebar-logo-sub">IA · Ensino Médio</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Principal</div>
+      <div class="nav-item active" onclick="setView('chat')" id="nav-chat"><span class="nav-icon">💬</span> Chat IA</div>
+      <div class="nav-item" onclick="setView('dashboard')" id="nav-dashboard"><span class="nav-icon">📊</span> Dashboard<span class="nav-badge hot">XP</span></div>
+      <div class="nav-section-label" style="margin-top:8px">Ferramentas</div>
+      <div class="nav-item" onclick="setView('quiz')" id="nav-quiz"><span class="nav-icon">🎯</span> Quiz IA</div>
+      <div class="nav-item" onclick="setView('plan')" id="nav-plan"><span class="nav-icon">📅</span> Plano de Estudos</div>
+      <div class="nav-item" onclick="setView('upload')" id="nav-upload"><span class="nav-icon">📄</span> PDF + IA</div>
+      <div class="nav-section-label" style="margin-top:8px">Sessão</div>
+      <div class="nav-item" onclick="setView('atividades-aluno')" id="nav-atividades-aluno"><span class="nav-icon">📚</span> Atividades</div>
+      <div class="nav-item" onclick="setView('avisos-aluno')" id="nav-avisos-aluno"><span class="nav-icon">📢</span> Avisos</div>
+      <div class="nav-item" onclick="toggleHistory()"><span class="nav-icon">🕓</span> Histórico</div>
+      <div class="nav-item" onclick="clearChat()"><span class="nav-icon">🗑️</span> Limpar chat</div>
+    </nav>
+
+    <div class="sidebar-providers">
+      <div class="nav-section-label" style="padding:0 0 8px">Modelo de IA</div>
+      <div class="provider-row">
+        <button class="provider-pill active" data-p="gemini" onclick="setProvider('gemini')">✦ Gemini</button>
+        <button class="provider-pill" data-p="groq" onclick="setProvider('groq')">⚡ Groq</button>
+        <button class="provider-pill" data-p="mistral" onclick="setProvider('mistral')">🌪 Mistral</button>
+      </div>
+    </div>
+
+    <div class="sidebar-xp">
+      <div class="xp-header">
+        <span class="xp-label">⚡ XP</span>
+        <span class="xp-level" id="xpLevel">Nível 1</span>
+      </div>
+      <div class="xp-bar-track"><div class="xp-bar-fill" id="xpFill" style="width:0%"></div></div>
+      <div class="xp-stats">
+        <div class="xp-stat"><div class="xp-stat-val" id="statMsgs">0</div><div class="xp-stat-key">msgs</div></div>
+        <div class="xp-stat"><div class="xp-stat-val" id="statQuizzes">0</div><div class="xp-stat-key">quizzes</div></div>
+        <div class="xp-stat"><div class="xp-stat-val" id="statStreak">0</div><div class="xp-stat-key">streak</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- Header -->
+    <div class="header">
+      <button class="hamburger-btn" onclick="toggleSidebar()" id="hamburgerBtn">☰</button>
+      <div class="view-label" id="viewLabel">Chat IA</div>
+
+      <div class="mode-btns">
+        <button class="mode-btn active" data-mode="divertido" onclick="setMode('divertido')">😄 Divertido</button>
+        <button class="mode-btn" data-mode="formal" onclick="setMode('formal')">📋 Formal</button>
+      </div>
+
+      <div class="header-spacer"></div>
+
+      <div class="tts-bar" id="ttsBar">
+        <span class="bar"><span></span><span></span><span></span><span></span></span>
+        TTS ativo
+      </div>
+
+      <button class="user-avatar-btn" id="userAvatarBtn" onclick="toggleUserDropdown()">?</button>
+    </div>
+
+    <!-- Subjects bar -->
+    <div class="subjects-bar" id="subjectsBar">
+      <button class="chip active" onclick="setSubject(this,'geral')">✨ Geral</button>
+      <button class="chip" onclick="setSubject(this,'matematica')">📐 Matemática</button>
+      <button class="chip" onclick="setSubject(this,'fisica')">⚛️ Física</button>
+      <button class="chip" onclick="setSubject(this,'quimica')">🧪 Química</button>
+      <button class="chip" onclick="setSubject(this,'biologia')">🌿 Biologia</button>
+      <button class="chip" onclick="setSubject(this,'historia')">🏛️ História</button>
+      <button class="chip" onclick="setSubject(this,'geografia')">🌍 Geografia</button>
+      <button class="chip" onclick="setSubject(this,'portugues')">📝 Português</button>
+      <button class="chip" onclick="setSubject(this,'ingles')">🇬🇧 Inglês</button>
+      <button class="chip" onclick="setSubject(this,'filosofia')">🤔 Filosofia</button>
+      <button class="chip" onclick="setSubject(this,'sociologia')">👥 Sociologia</button>
+      <button class="chip" onclick="setSubject(this,'enem')">🎯 ENEM</button>
+    </div>
+
+    <!-- VIEWS -->
+    <div class="view active" id="view-chat">
+      <div class="chat-wrapper" id="chatWrapper"><div id="chat"></div></div>
+      <div class="input-area">
+        <div id="pdfAttachment" style="display:none"></div>
+        <div class="input-box">
+          <textarea id="userInput" placeholder="Manda a dúvida pro Prof. Roberto... 🚀" rows="1"></textarea>
+          <div class="input-actions">
+            <label class="upload-btn" title="Enviar PDF">📎<input type="file" id="pdfFileInput" accept=".pdf" onchange="handlePDFAttach(event)"></label>
+            <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Falar">🎤</button>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+          </div>
+        </div>
+        <div class="hint">📎 PDF · 🎤 falar · Enter enviar · Shift+Enter nova linha</div>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="view" id="view-dashboard">
+      <div class="dashboard-view">
+        <div class="dash-grid">
+          <div class="dash-card"><div class="dash-card-header"><div class="dash-card-icon cyan">💬</div><div><div class="dash-card-title">Mensagens Totais</div><div class="dash-card-sub">Toda a sessão</div></div></div><div class="dash-big-number" id="dashTotalMsgs">0</div><div class="dash-trend" id="dashMsgTrend">+0 hoje</div></div>
+          <div class="dash-card"><div class="dash-card-header"><div class="dash-card-icon yellow">🎯</div><div><div class="dash-card-title">Quizzes Realizados</div><div class="dash-card-sub">Acurácia média</div></div></div><div class="dash-big-number" id="dashQuizCount">0</div><div class="dash-trend" id="dashQuizAcc">— sem dados</div></div>
+          <div class="dash-card" style="grid-column:span 2"><div class="dash-card-header"><div class="dash-card-icon green">📈</div><div><div class="dash-card-title">Atividade Semanal</div><div class="dash-card-sub">Mensagens por dia</div></div></div><div class="mini-bars" id="activityBars" style="padding-bottom:22px"></div></div>
+          <div class="dash-card"><div class="dash-card-header"><div class="dash-card-icon purple">📚</div><div><div class="dash-card-title">Matérias Exploradas</div><div class="dash-card-sub">% de interação</div></div></div><div class="subject-progress-list" id="subjectProgressList"></div></div>
+          <div class="dash-card"><div class="dash-card-header"><div class="dash-card-icon yellow">🏆</div><div><div class="dash-card-title">Conquistas</div><div class="dash-card-sub">Desbloqueadas</div></div></div><div class="achievements-grid" id="achievementsGrid"></div></div>
+          <div class="dash-card" style="grid-column:span 2"><div class="dash-card-header"><div class="dash-card-icon pink">💡</div><div><div class="dash-card-title">Recomendações</div><div class="dash-card-sub">Com base na sua atividade</div></div></div><div class="reco-list" id="recoList"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz -->
+    <div class="view" id="view-quiz">
+      <div class="quiz-view">
+        <div class="quiz-header-area"><div class="quiz-title-row"><span style="font-size:24px">🎯</span><div class="quiz-main-title">Quiz IA</div></div><div class="quiz-subtitle">Gere questões automaticamente com IA</div></div>
+        <div class="quiz-gen-box"><div class="quiz-gen-row">
+          <span class="quiz-gen-label">Ano:</span>
+          <select class="quiz-select" id="quizYear">
+            <optgroup label="🏫 Fundamental I">
+              <option value="1º ano Fundamental">1º ano</option>
+              <option value="2º ano Fundamental">2º ano</option>
+              <option value="3º ano Fundamental">3º ano</option>
+              <option value="4º ano Fundamental">4º ano</option>
+              <option value="5º ano Fundamental">5º ano</option>
+            </optgroup>
+            <optgroup label="🏫 Fundamental II">
+              <option value="6º ano Fundamental">6º ano</option>
+              <option value="7º ano Fundamental">7º ano</option>
+              <option value="8º ano Fundamental">8º ano</option>
+              <option value="9º ano Fundamental">9º ano</option>
+            </optgroup>
+            <optgroup label="🎓 Ensino Médio">
+              <option value="1º ano Ensino Médio" selected>1º EM</option>
+              <option value="2º ano Ensino Médio">2º EM</option>
+              <option value="3º ano Ensino Médio">3º EM</option>
+            </optgroup>
+            <optgroup label="🎯 Vestibular">
+              <option value="ENEM">ENEM</option>
+              <option value="Vestibular">Vestibular</option>
+            </optgroup>
+          </select>
+          <span class="quiz-gen-label">Matéria:</span>
+          <select class="quiz-select" id="quizSubject"><option value="geral">Geral</option><option value="matematica">Matemática</option><option value="fisica">Física</option><option value="quimica">Química</option><option value="biologia">Biologia</option><option value="historia">História</option><option value="geografia">Geografia</option><option value="portugues">Português</option><option value="ingles">Inglês</option><option value="filosofia">Filosofia</option><option value="enem">ENEM</option></select>
+          <span class="quiz-gen-label">Dificuldade:</span>
+          <select class="quiz-select" id="quizDiff"><option value="fácil">Fácil</option><option value="médio" selected>Médio</option><option value="difícil">Difícil</option></select>
+          <span class="quiz-gen-label">Qtde:</span>
+          <select class="quiz-select" id="quizQty"><option value="3">3</option><option value="5" selected>5</option><option value="10">10</option></select>
+          <button class="quiz-gen-btn" id="quizGenBtn" onclick="generateQuiz()">⚡ Gerar Quiz</button>
+        </div></div>
+        <div id="quizScoreBar" style="display:none"></div>
+        <div class="quiz-container" id="quizContainer"><div style="text-align:center;color:var(--text-muted);padding:48px 0;font-size:14px;">Configure e clique em "Gerar Quiz" para começar 🎯</div></div>
+      </div>
+    </div>
+
+    <!-- Plan -->
+    <div class="view" id="view-plan">
+      <div class="plan-view">
+        <div class="quiz-header-area"><div class="quiz-title-row"><span style="font-size:24px">📅</span><div class="quiz-main-title">Plano de Estudos</div></div><div class="quiz-subtitle">A IA monta seu cronograma personalizado</div></div>
+        <div class="plan-gen-box"><div class="plan-gen-row">
+          <span class="plan-gen-label">Ano:</span>
+          <select class="quiz-select" id="planYear">
+            <optgroup label="🏫 Fundamental I">
+              <option value="1º ano Fundamental">1º ano</option>
+              <option value="2º ano Fundamental">2º ano</option>
+              <option value="3º ano Fundamental">3º ano</option>
+              <option value="4º ano Fundamental">4º ano</option>
+              <option value="5º ano Fundamental">5º ano</option>
+            </optgroup>
+            <optgroup label="🏫 Fundamental II">
+              <option value="6º ano Fundamental">6º ano</option>
+              <option value="7º ano Fundamental">7º ano</option>
+              <option value="8º ano Fundamental">8º ano</option>
+              <option value="9º ano Fundamental">9º ano</option>
+            </optgroup>
+            <optgroup label="🎓 Ensino Médio">
+              <option value="1º ano Ensino Médio" selected>1º EM</option>
+              <option value="2º ano Ensino Médio">2º EM</option>
+              <option value="3º ano Ensino Médio">3º EM</option>
+            </optgroup>
+            <optgroup label="🎯 Vestibular">
+              <option value="ENEM">ENEM</option>
+              <option value="Vestibular">Vestibular</option>
+            </optgroup>
+          </select>
+          <span class="plan-gen-label">Objetivo:</span>
+          <select class="quiz-select" id="planGoal"><option value="ENEM">ENEM</option><option value="vestibular específico">Vestibular</option><option value="recuperação">Recuperação</option><option value="aprofundamento geral">Aprofundamento</option></select>
+          <span class="plan-gen-label">Semanas:</span>
+          <select class="quiz-select" id="planWeeks"><option value="2">2</option><option value="4" selected>4</option><option value="8">8</option><option value="12">12</option></select>
+          <span class="plan-gen-label">Horas/dia:</span>
+          <select class="quiz-select" id="planHours"><option value="1">1h</option><option value="2" selected>2h</option><option value="3">3h</option><option value="4">4h+</option></select>
+          <button class="plan-gen-btn" id="planGenBtn" onclick="generatePlan()">📅 Gerar Plano</button>
+        </div></div>
+        <div class="plan-container" id="planContainer"><div style="text-align:center;color:var(--text-muted);padding:48px 0;font-size:14px;">Defina seu objetivo e clique em "Gerar Plano" 📅</div></div>
+      </div>
+    </div>
+
+    <!-- Atividades e quizzes dos professores -->
+    <div class="view" id="view-atividades-aluno">
+      <div class="quiz-view">
+        <div class="quiz-header-area"><div class="quiz-title-row"><span style="font-size:24px">📚</span><div class="quiz-main-title">Atividades</div></div><div class="quiz-subtitle">Atividades e quizzes enviados pelos seus professores</div></div>
+        <div id="atividadesAlunoList" style="color:var(--text-muted);font-size:13px;padding:20px 0">Carregando atividades...</div>
+        <div id="atividadeAlunoPlayer"></div>
+      </div>
+    </div>
+
+    <!-- Avisos para Alunos -->
+    <div class="view" id="view-avisos-aluno">
+      <div class="quiz-view">
+        <div class="quiz-header-area"><div class="quiz-title-row"><span style="font-size:24px">📢</span><div class="quiz-main-title">Avisos</div></div><div class="quiz-subtitle">Avisos dos seus professores</div></div>
+        <div id="avisosAlunoList" style="color:var(--text-muted);font-size:13px;padding:20px 0">Carregando avisos...</div>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="view" id="view-upload">
+      <div class="upload-view">
+        <div class="quiz-header-area"><div class="quiz-title-row"><span style="font-size:24px">📄</span><div class="quiz-main-title">PDF + IA</div></div><div class="quiz-subtitle">Envie um PDF e a IA faz resumo, quiz ou conversa sobre ele</div></div>
+        <div class="upload-drop-zone" id="dropZone" onclick="document.getElementById('uploadFileInput').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDropZone(event)">
+          <input type="file" id="uploadFileInput" accept=".pdf" style="display:none" onchange="handleUploadFile(event)">
+          <div class="upload-drop-icon">📄</div>
+          <div class="upload-drop-title">Arraste seu PDF aqui</div>
+          <div class="upload-drop-sub">ou clique para selecionar</div>
+          <button class="upload-file-btn" onclick="event.stopPropagation();document.getElementById('uploadFileInput').click()">Escolher arquivo</button>
+        </div>
+        <!-- Seletor de ano para PDF -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
+          <span style="font-size:12px;font-weight:700;color:var(--text-muted)">Ano escolar:</span>
+          <select class="quiz-select" id="uploadYear">
+            <optgroup label="🏫 Fundamental I">
+              <option value="1º ano Fundamental">1º ano</option><option value="2º ano Fundamental">2º ano</option>
+              <option value="3º ano Fundamental">3º ano</option><option value="4º ano Fundamental">4º ano</option>
+              <option value="5º ano Fundamental">5º ano</option>
+            </optgroup>
+            <optgroup label="🏫 Fundamental II">
+              <option value="6º ano Fundamental">6º ano</option><option value="7º ano Fundamental">7º ano</option>
+              <option value="8º ano Fundamental">8º ano</option><option value="9º ano Fundamental">9º ano</option>
+            </optgroup>
+            <optgroup label="🎓 Ensino Médio">
+              <option value="1º ano Ensino Médio" selected>1º EM</option>
+              <option value="2º ano Ensino Médio">2º EM</option><option value="3º ano Ensino Médio">3º EM</option>
+            </optgroup>
+            <optgroup label="🎯 Vestibular"><option value="ENEM">ENEM</option><option value="Vestibular">Vestibular</option></optgroup>
+          </select>
+          <span style="font-size:11px;color:var(--text-muted)">A IA adapta o nível do resumo e quiz ao seu ano</span>
+        </div>
+        <div class="upload-result-area" id="uploadResultArea"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app-shell -->
+
+<!-- ══════════ MODO AULA BANNER ══════════ -->
+<div id="modoAulaBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:linear-gradient(90deg,rgba(251,191,36,0.15),rgba(251,146,60,0.1));border-bottom:1px solid rgba(251,191,36,0.3);padding:8px 20px;display:none;align-items:center;gap:12px">
+  <span style="font-size:18px">🎓</span>
+  <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fbbf24">MODO AULA ATIVO —</span>
+  <span id="modoAulaLabel" style="font-size:13px;color:#fb923c;font-weight:600"></span>
+  <button onclick="desativarModoAula()" style="margin-left:auto;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px;cursor:pointer">Voltar ao modo geral</button>
+</div>
+
+<!-- ══════════ PROFESSOR PANEL ══════════ -->
+<div id="professor-screen" class="hidden">
+  <div class="admin-nav-overlay" id="profNavOverlay" onclick="closeAdminNav('professor-screen')"></div>
+  <div class="admin-header">
+    <button type="button" class="admin-menu-btn" onclick="toggleAdminNav('professor-screen')" aria-label="Menu">☰</button>
+    <div class="admin-logo prof-logo-text">
+      👨‍🏫 Painel Professor <span class="admin-badge" style="color:#00d4ff;border-color:rgba(0,212,255,0.3);background:rgba(0,212,255,0.1)" id="profBadgeMateria"></span>
+    </div>
+    <div class="admin-header-right">
+      <button class="admin-refresh-btn" onclick="loadProfData()">↺ Atualizar</button>
+      <button class="admin-exit-btn" onclick="closeProfessorPanel()">✕ Fechar</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <nav class="admin-nav">
+      <div class="admin-nav-item active" data-pview="atividades"  onclick="switchProfView('atividades')"> <span class="admin-nav-icon">📚</span> Criar Atividade</div>
+      <div class="admin-nav-item" data-pview="quiz-prof"          onclick="switchProfView('quiz-prof')">  <span class="admin-nav-icon">🎯</span> Criar Quiz</div>
+      <div class="admin-nav-item" data-pview="avisos"             onclick="switchProfView('avisos')">     <span class="admin-nav-icon">📢</span> Avisos</div>
+      <div class="admin-nav-item" data-pview="stats-prof"         onclick="switchProfView('stats-prof')"> <span class="admin-nav-icon">📊</span> Estatísticas</div>
+      <div class="admin-nav-item" data-pview="modo-aula"          onclick="switchProfView('modo-aula')">  <span class="admin-nav-icon">🎓</span> Modo Aula</div>
+    </nav>
+    <div class="admin-content">
+
+      <!-- Criar Atividade -->
+      <div class="admin-view active" id="prof-view-atividades">
+        <div class="admin-section-title">📚 Criar Atividade com IA</div>
+        <div class="admin-stat-card" style="margin-bottom:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Série</div>
+              <select class="admin-filter-select" id="atSerie" style="width:100%">
+                <option value="5º Fundamental">5º Fundamental</option>
+                <option value="6º Fundamental">6º Fundamental</option>
+                <option value="7º Fundamental">7º Fundamental</option>
+                <option value="8º Fundamental">8º Fundamental</option>
+                <option value="9º Fundamental">9º Fundamental</option>
+                <option value="1º Ensino Médio">1º Ensino Médio</option>
+                <option value="2º Ensino Médio">2º Ensino Médio</option>
+                <option value="3º Ensino Médio">3º Ensino Médio</option>
+              </select>
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Turma</div>
+              <select class="admin-filter-select" id="atTurma" style="width:100%">
+                <option value="A">Turma A</option><option value="B">Turma B</option>
+                <option value="C">Turma C</option><option value="D">Turma D</option>
+              </select>
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Assunto</div>
+              <input class="admin-search-input" id="atAssunto" placeholder="Ex: Equação do 1º grau" style="width:100%">
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Dificuldade</div>
+              <select class="admin-filter-select" id="atDificuldade" style="width:100%">
+                <option value="fácil">Fácil</option><option value="média" selected>Média</option><option value="difícil">Difícil</option>
+              </select>
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Nº de Questões</div>
+              <select class="admin-filter-select" id="atQtd" style="width:100%">
+                <option value="5">5</option><option value="10" selected>10</option><option value="15">15</option>
+              </select>
+            </div>
+          </div>
+          <button class="quiz-gen-btn" id="atGenBtn" onclick="gerarAtividade()" style="width:100%;padding:12px">⚡ Gerar Atividade com IA</button>
+        </div>
+        <div id="atResultArea"></div>
+        <div class="admin-section-title" style="font-size:16px;margin-top:24px">📋 Atividades Salvas</div>
+        <div id="atListArea" style="color:var(--text-muted);font-size:13px">Carregando...</div>
+      </div>
+
+      <!-- Quiz Professor -->
+      <div class="admin-view" id="prof-view-quiz-prof">
+        <div class="admin-section-title">🎯 Criar Quiz para Turma</div>
+        <div class="admin-stat-card" style="margin-bottom:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Série</div>
+              <select class="admin-filter-select" id="qpSerie" style="width:100%">
+                <option value="5º Fundamental">5º Fundamental</option>
+                <option value="6º Fundamental">6º Fundamental</option>
+                <option value="7º Fundamental">7º Fundamental</option>
+                <option value="8º Fundamental">8º Fundamental</option>
+                <option value="9º Fundamental">9º Fundamental</option>
+                <option value="1º Ensino Médio">1º Ensino Médio</option>
+                <option value="2º Ensino Médio">2º Ensino Médio</option>
+                <option value="3º Ensino Médio">3º Ensino Médio</option>
+              </select>
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Turma</div>
+              <select class="admin-filter-select" id="qpTurma" style="width:100%">
+                <option value="A">Turma A</option><option value="B">Turma B</option>
+                <option value="C">Turma C</option><option value="D">Turma D</option>
+              </select>
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Assunto</div>
+              <input class="admin-search-input" id="qpAssunto" placeholder="Ex: Frações" style="width:100%">
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Dificuldade</div>
+              <select class="admin-filter-select" id="qpDificuldade" style="width:100%">
+                <option value="fácil">Fácil</option><option value="média" selected>Média</option><option value="difícil">Difícil</option>
+              </select>
+            </div>
+          </div>
+          <button class="quiz-gen-btn" id="qpGenBtn" onclick="gerarQuizProf()" style="width:100%;padding:12px">⚡ Gerar Quiz com IA</button>
+        </div>
+        <div id="qpResultArea"></div>
+      </div>
+
+      <!-- Avisos -->
+      <div class="admin-view" id="prof-view-avisos">
+        <div class="admin-section-title">📢 Publicar Aviso</div>
+        <div class="admin-stat-card" style="margin-bottom:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Série</div>
+              <select class="admin-filter-select" id="avSerie" style="width:100%">
+                <option value="Todas">Todas as séries</option>
+                <option value="5º Fundamental">5º Fundamental</option>
+                <option value="6º Fundamental">6º Fundamental</option>
+                <option value="7º Fundamental">7º Fundamental</option>
+                <option value="8º Fundamental">8º Fundamental</option>
+                <option value="9º Fundamental">9º Fundamental</option>
+                <option value="1º Ensino Médio">1º Ensino Médio</option>
+                <option value="2º Ensino Médio">2º Ensino Médio</option>
+                <option value="3º Ensino Médio">3º Ensino Médio</option>
+              </select>
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Turma</div>
+              <select class="admin-filter-select" id="avTurma" style="width:100%">
+                <option value="Todas">Todas as turmas</option>
+                <option value="A">Turma A</option><option value="B">Turma B</option>
+                <option value="C">Turma C</option><option value="D">Turma D</option>
+              </select>
+            </div>
+          </div>
+          <input class="admin-search-input" id="avTitulo" placeholder="Título do aviso" style="width:100%;margin-bottom:10px">
+          <textarea id="avMensagem" style="width:100%;background:#080c15;border:1px solid #1a2540;border-radius:9px;color:#dde6f5;font-family:'Nunito',sans-serif;font-size:13px;padding:10px 14px;outline:none;resize:vertical;min-height:80px" placeholder="Mensagem do aviso..."></textarea>
+          <button onclick="publicarAviso()" style="margin-top:12px;background:linear-gradient(135deg,rgba(0,212,255,0.2),rgba(0,255,157,0.2));border:1px solid rgba(0,212,255,0.4);color:#00d4ff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;padding:10px 24px;border-radius:10px;cursor:pointer;width:100%">📢 Publicar Aviso</button>
+        </div>
+        <div class="admin-section-title" style="font-size:16px">Avisos Publicados</div>
+        <div id="avListArea" style="color:var(--text-muted);font-size:13px">Carregando...</div>
+      </div>
+
+      <!-- Estatísticas Professor -->
+      <div class="admin-view" id="prof-view-stats-prof">
+        <div class="admin-section-title">📊 Estatísticas por Turma</div>
+        <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+          <select class="admin-filter-select" id="statsSerie" onchange="loadProfStats()">
+            <option value="Todas">Todas as séries</option>
+            <option value="1º Ensino Médio">1º Ensino Médio</option>
+            <option value="2º Ensino Médio">2º Ensino Médio</option>
+            <option value="3º Ensino Médio">3º Ensino Médio</option>
+          </select>
+          <select class="admin-filter-select" id="statsTurma" onchange="loadProfStats()">
+            <option value="Todas">Todas as turmas</option>
+            <option value="A">Turma A</option><option value="B">Turma B</option>
+            <option value="C">Turma C</option><option value="D">Turma D</option>
+          </select>
+          <button class="admin-refresh-btn" onclick="loadProfStats()">↺ Atualizar</button>
+        </div>
+        <div class="admin-stats-grid" id="profStatsGrid">
+          <div class="admin-stat-card"><div class="admin-stat-icon">👥</div><div class="admin-stat-val" id="pstat-alunos">—</div><div class="admin-stat-label">Alunos</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">🎯</div><div class="admin-stat-val" id="pstat-quizzes">—</div><div class="admin-stat-label">Quizzes feitos</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">📈</div><div class="admin-stat-val" id="pstat-media">—</div><div class="admin-stat-label">Média quizzes</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">📚</div><div class="admin-stat-val" id="pstat-atividades">—</div><div class="admin-stat-label">Atividades</div></div>
+        </div>
+        <div class="admin-section-title" style="font-size:16px">Alunos da turma</div>
+        <div id="profAlunosList" style="color:var(--text-muted);font-size:13px">Selecione uma turma</div>
+      </div>
+
+      <!-- Modo Aula -->
+      <div class="admin-view" id="prof-view-modo-aula">
+        <div class="admin-section-title">🎓 Modo Aula</div>
+        <div class="admin-stat-card" style="margin-bottom:20px">
+          <div style="font-size:14px;color:var(--text-dim);margin-bottom:16px;line-height:1.6">Enquanto o Modo Aula estiver ativo, a IA priorizará respostas da matéria selecionada, respondendo como professor especialista nessa disciplina.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Série</div>
+              <select class="admin-filter-select" id="maSerie" style="width:100%">
+                <option value="1º Ensino Médio">1º Ensino Médio</option>
+                <option value="2º Ensino Médio">2º Ensino Médio</option>
+                <option value="3º Ensino Médio">3º Ensino Médio</option>
+              </select>
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Turma</div>
+              <select class="admin-filter-select" id="maTurma" style="width:100%">
+                <option value="A">Turma A</option><option value="B">Turma B</option>
+                <option value="C">Turma C</option><option value="D">Turma D</option>
+              </select>
+            </div>
+            <div>
+              <div class="auth-field-label" style="margin-bottom:6px">Matéria da aula</div>
+              <select class="admin-filter-select" id="maMateria" style="width:100%">
+                <option value="Matemática">📐 Matemática</option>
+                <option value="Português">📝 Português</option>
+                <option value="História">🏛️ História</option>
+                <option value="Geografia">🌍 Geografia</option>
+                <option value="Ciências">🔬 Ciências</option>
+                <option value="Física">⚛️ Física</option>
+                <option value="Química">🧪 Química</option>
+                <option value="Biologia">🌿 Biologia</option>
+                <option value="Inglês">🇬🇧 Inglês</option>
+              </select>
+            </div>
+          </div>
+          <div id="modoAulaStatus" style="margin-bottom:14px;font-size:13px;color:var(--text-muted)">Modo aula inativo</div>
+          <div style="display:flex;gap:10px">
+            <button onclick="ativarModoAula()" style="flex:1;background:linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,146,60,0.2));border:1px solid rgba(251,191,36,0.4);color:#fbbf24;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;padding:12px;border-radius:10px;cursor:pointer">🎓 Iniciar Aula</button>
+            <button onclick="desativarModoAula()" style="flex:1;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);color:#f87171;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;padding:12px;border-radius:10px;cursor:pointer">⏹ Encerrar Aula</button>
+          </div>
+        </div>
+        <div class="admin-section-title" style="font-size:16px">Aulas registradas</div>
+        <div id="maHistorico" style="color:var(--text-muted);font-size:13px">Carregando...</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SUPER ADMIN PANEL ══════════ -->
+<div id="superadmin-screen" class="hidden">
+  <div class="admin-nav-overlay" id="saNavOverlay" onclick="closeAdminNav('superadmin-screen')"></div>
+  <div class="admin-header">
+    <button type="button" class="admin-menu-btn" onclick="toggleAdminNav('superadmin-screen')" aria-label="Menu">☰</button>
+    <div class="admin-logo">
+      ⚡ Super Admin <span class="admin-badge admin-badge--purple">SUPREMO</span>
+    </div>
+    <div class="admin-header-right">
+      <button class="admin-refresh-btn" onclick="loadSuperAdminData()">↺ Atualizar</button>
+      <button class="admin-exit-btn" onclick="closeSuperAdminPanel()">✕ Fechar</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <nav class="admin-nav">
+      <div class="admin-nav-item active" data-saview="professores" onclick="switchSAView('professores')"><span class="admin-nav-icon">👨‍🏫</span> Professores</div>
+      <div class="admin-nav-item" data-saview="sa-usuarios"        onclick="switchSAView('sa-usuarios')"><span class="admin-nav-icon">👥</span> Usuários</div>
+      <div class="admin-nav-item" data-saview="turmas"             onclick="switchSAView('turmas')">    <span class="admin-nav-icon">🏫</span> Turmas</div>
+    </nav>
+    <div class="admin-content">
+
+      <!-- Professores -->
+      <div class="admin-view active" id="sa-view-professores">
+        <div class="admin-page-head">
+          <h2 class="admin-section-title">👨‍🏫 Professores</h2>
+          <p class="admin-page-subtitle">Contas criadas na tela de login — você visualiza e modera aqui.</p>
+        </div>
+        <div class="admin-info-banner admin-info-banner--purple">
+          <div class="admin-info-banner-icon">📋</div>
+          <div class="admin-info-banner-text">
+            <strong>Cadastro automático</strong>
+            <p>Não é preciso criar professor manualmente. Na página inicial, use <em>Criar conta → Professor</em>.</p>
+          </div>
+        </div>
+        <div class="admin-stats-grid sa-prof-stats" id="saProfStats">
+          <div class="admin-stat-card"><div class="admin-stat-icon">👨‍🏫</div><div class="admin-stat-val" id="saProfCountTotal">—</div><div class="admin-stat-label">Total</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">✅</div><div class="admin-stat-val" id="saProfCountActive">—</div><div class="admin-stat-label">Ativos</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-icon">📚</div><div class="admin-stat-val" id="saProfCountMaterias">—</div><div class="admin-stat-label">Matérias</div></div>
+        </div>
+        <div class="admin-table-wrap">
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead><tr><th>Professor</th><th>Matéria</th><th>Status</th><th>Ações</th></tr></thead>
+              <tbody id="saProfBody"><tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-muted)">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Usuários SA -->
+      <div class="admin-view" id="sa-view-sa-usuarios">
+        <div class="admin-section-title">👥 Todos os Usuários</div>
+        <div class="admin-search-row">
+          <input class="admin-search-input" id="saUserSearch" placeholder="🔍 Buscar..." oninput="filterSAUsers()" style="flex:1">
+          <select class="admin-filter-select" id="saUserTypeFilter" onchange="filterSAUsers()">
+            <option value="all">Todos os tipos</option>
+            <option value="aluno">Alunos</option>
+            <option value="professor">Professores</option>
+            <option value="admin">Admins</option>
+          </select>
+        </div>
+        <div class="admin-table-wrap" style="margin-top:12px">
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead><tr><th>Usuário</th><th>Tipo</th><th>Série/Matéria</th><th>Status</th><th>Ações</th></tr></thead>
+              <tbody id="saUsersBody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Turmas SA -->
+      <div class="admin-view" id="sa-view-turmas">
+        <div class="admin-section-title">🏫 Gestão de Turmas e Matérias</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="admin-stat-card">
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text);margin-bottom:14px">Alunos por Turma</div>
+            <div id="saTurmasList" style="color:var(--text-muted);font-size:13px">Carregando...</div>
+          </div>
+          <div class="admin-stat-card">
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text);margin-bottom:14px">Professores por Matéria</div>
+            <div id="saMateriasList" style="color:var(--text-muted);font-size:13px">Carregando...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: alterar tipo de usuário (admin) -->
+<div id="roleModal" class="admin-modal-overlay hidden" onclick="if(event.target===this)closeRoleModal()">
+  <div class="admin-modal role-modal" role="dialog" aria-labelledby="roleModalTitle">
+    <div class="admin-modal-header">
+      <div class="admin-modal-title" id="roleModalTitle">Alterar tipo de conta</div>
+      <button type="button" class="admin-modal-close" onclick="closeRoleModal()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="role-modal-user" id="roleModalUserLabel">—</p>
+      <div class="role-modal-field">
+        <label class="auth-field-label" for="roleModalTipo">Tipo</label>
+        <select class="auth-input" id="roleModalTipo" onchange="toggleRoleModalFields()">
+          <option value="aluno">👩‍🎓 Aluno</option>
+          <option value="professor">👨‍🏫 Professor</option>
+          <option value="admin">🛡️ Admin</option>
+          <option value="super_admin">⚡ Super Admin</option>
+        </select>
+      </div>
+      <div id="roleModalAlunoFields" class="role-modal-extra">
+        <div class="role-modal-field">
+          <label class="auth-field-label" for="roleModalSerie">Série</label>
+          <select class="auth-input" id="roleModalSerie">
+            <option value="5º Fundamental">5º Fundamental</option>
+            <option value="6º Fundamental">6º Fundamental</option>
+            <option value="7º Fundamental">7º Fundamental</option>
+            <option value="8º Fundamental">8º Fundamental</option>
+            <option value="9º Fundamental">9º Fundamental</option>
+            <option value="1º Ensino Médio">1º Ensino Médio</option>
+            <option value="2º Ensino Médio">2º Ensino Médio</option>
+            <option value="3º Ensino Médio">3º Ensino Médio</option>
+          </select>
+        </div>
+        <div class="role-modal-field">
+          <label class="auth-field-label" for="roleModalTurma">Turma</label>
+          <select class="auth-input" id="roleModalTurma">
+            <option value="A">Turma A</option>
+            <option value="B">Turma B</option>
+            <option value="C">Turma C</option>
+            <option value="D">Turma D</option>
+          </select>
+        </div>
+      </div>
+      <div id="roleModalProfFields" class="role-modal-extra hidden">
+        <div class="role-modal-field">
+          <label class="auth-field-label" for="roleModalMateria">Matéria</label>
+          <select class="auth-input" id="roleModalMateria">
+            <option value="Matemática">Matemática</option>
+            <option value="Português">Português</option>
+            <option value="História">História</option>
+            <option value="Geografia">Geografia</option>
+            <option value="Ciências">Ciências</option>
+            <option value="Física">Física</option>
+            <option value="Química">Química</option>
+            <option value="Biologia">Biologia</option>
+            <option value="Inglês">Inglês</option>
+          </select>
+        </div>
+      </div>
+      <p class="role-modal-error hidden" id="roleModalError"></p>
+      <div class="role-modal-actions">
+        <button type="button" class="role-modal-btn role-modal-btn--ghost" onclick="closeRoleModal()">Cancelar</button>
+        <button type="button" class="role-modal-btn role-modal-btn--primary" id="roleModalSaveBtn" onclick="saveRoleModal()">Salvar alteração</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- History Panel -->
+<div class="history-panel" id="historyPanel">
+  <div class="history-panel-header">
+    <div class="history-panel-title">🕓 Histórico</div>
+    <button class="history-close-btn" onclick="toggleHistory()">✕</button>
+  </div>
+  <div class="history-list" id="historyList">
+    <div style="text-align:center;color:var(--text-muted);padding:32px;font-size:13px">Nenhum histórico ainda</div>
+  </div>
+</div>
+
+
+<script src="config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
